@@ -84,7 +84,6 @@ project_root/
 ├── README.md
 └── .env.example                       # APIキー設定例
 ```
-```
 
 ---
 
@@ -100,10 +99,34 @@ pip install -r requirements.txt
 
 ### 2️⃣ `.env` 設定例
 
+プロジェクトルートに .env を置き、Google Maps API キーなどを管理します（推奨）。例:
+
 ```
+# .env (プロジェクトルート)
 GOOGLE_MAPS_API_KEY=xxxxxxx
 LOCAL_LLM_ENDPOINT=http://localhost:11434
 LOCAL_LLM_MODEL=mistral
+```
+
+Python 側での読み込み例（python-dotenv を使用）:
+
+```python
+# README に示す読み込み例
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # .env を読み込む
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
+# 実装方針
+# - アプリはまず環境変数(GOOGLE_MAPS_API_KEY)を参照する。
+# - 見つからない場合のみ config/config.yaml の google_maps.api_key を参照する（ただし config に API キーをハードコードするのは非推奨）。
+```
+
+インストール例:
+
+```bash
+pip install python-dotenv
 ```
 
 ### 3️⃣ Streamlit起動
