@@ -7,8 +7,8 @@
 | 🥉 **`phi3:mini`（3.8B）**      | 超軽量で速い             | 試作やモバイル開発用に最適。ただし文生成は少し硬い。            |    |
 | 🎌 **`elyza:7b-instruct`**    | 日本語最適化             | 完全日本語対応。カフェBotが日本語メインなら有力候補。M4上でも実行可。 |    |
 
-- [ ] .env, config.yamlの設定
-- [ ] google_maps.pyの実装
+- [☑️] .env, config.yamlの設定
+- [☑️] google_maps.pyの実装
 - [ ] Streamlit.pyによる実装
 - [ ] DSPyの実装
 - [] ローカルLLMで自然文章の生成
