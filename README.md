@@ -30,7 +30,7 @@ graph TD
     D -->|カフェ情報JSON| E[DSPy Signature]
     E -->|推論プロンプト| F[ローカルLLM]
     F -->|生成テキスト| G[Streamlit表示]
-````
+```
 
 ---
 

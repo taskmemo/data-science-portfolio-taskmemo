@@ -108,7 +108,7 @@ def search_nearby_cafes(lat: float, lng: float, radius: int = None, limit: int =
             "lng": place.get("geometry", {}).get("location", {}).get("lng"),
             "rating": place.get("rating"),
             "user_ratings_total": place.get("user_ratings_total"),
-            "map_url": f"https://www.google.com/maps/place/?q=place_id:{place.get('place_id')}"
+            "maps_link": f"https://www.google.com/maps/place/?q=place_id:{place.get('place_id')}"
         })
 
     return cafes

@@ -1,22 +1,41 @@
 from typing import List, Dict, Optional
-from dspy import Signature
+import dspy
+from src.api.google_maps import load_config
 
-class CafeInfo(Signature):
-    """ cafe information class """
-    name: str
-    address: str
-    lat: Optional[float]
-    lng: Optional[float]
-    rating: Optional[float]
-    user_ratings_total: Optional[int]
-    place_id: str
-    maps_link: str
 
-class CafeSearch(Signature):
+
+class CafeInfo(dspy.Signature):
+    """ cafe information class by search_nearby_cafes from Google_maps.py """
+    name: str = dspy.OutputField(desc = "カフェの名前")
+    address: str = dspy.OutputField(desc = "カフェの住所")
+    lat: Optional[float] = dspy.OutputField(desc = "カフェの緯度")
+    lng: Optional[float] = dspy.OutputField(desc = "カフェの経度")
+    rating: Optional[float] = dspy.OutputField(desc = "カフェの評価（1.0〜5.0）")
+    user_ratings_total: Optional[int] = dspy.OutputField(desc = "カフェの評価数")
+    maps_link: str = dspy.OutputField(desc = "Google Mapsのカフェリンク")
+
+class CafeSearch(dspy.Signature):
     """ cafe search result class """
-    latitude: float
-    longitude: float
-    radius: int = 1000
-    cafes: List[CafeInfo]
-    total_results: int = 20
-    recommendations: Optional[List[CafeInfo]] = None
+    # Input fields 
+    place_name: str = dspy.InputField(desc = "検索した地名")
+    radius: int = dspy.InputField(desc = "検索半径（メートル）")
+
+    # Output fields
+    latitude: float = dspy.InputField(desc = "検索地点の緯度")
+    longitude: float = dspy.InputField(desc = "検索地点の経度")
+    cafes: List[CafeInfo] = dspy.InputField(desc = "検索結果のカフェ情報リスト")
+    total_results: int = dspy.InputField(desc = "検索結果の総件数")
+
+class CafeRecommendation(dspy.Signature):
+    """ カフェ情報に基づき、ユーザーの希望に沿ったおすすめ文を生成する """
+    cafes: List[CafeInfo] = dspy.InputField(
+        desc = "Google Maps APIから取得したカフェ情報のリスト"
+    )
+
+    user_query: str = dspy.InputField(
+        desc = "ユーザーが求めている条件（例：静かなカフェ、作業可能なカフェなど）"
+    )
+
+    recommendation: str = dspy.OutputField(
+        desc = "与えられたカフェ情報に基づいて、上位5つを推薦し、簡潔に理由を説明した文章"
+    )

@@ -1,28 +1,47 @@
-import dspy
+"""
+このスクリプトは、DSPyで定義したSignatureやModuleを実行し、
+OllamaのローカルLLMにリクエストして応答を取得する。
+"""
+
 import requests
 import os
+from src.dspy.sigunatures import CafeRecommendation
+from src.api.google_maps import load_config
 
-OLLAMA_API = os.getenv("OLLAMA_API_BASE", "http://localhost:11434") #サーバーのエンドポイントは異なる可能性がある。
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "phi3:mini") # モデルは未設定
+# load configuration for dspy
+config = load_config()
+OLLAMA_API = config["llm"].get("endpoint", "http://localhost:11434/api/generate")
+OLLAMA_MODEL = config["llm"].get("model", "mistral:latest")
 
-lm = dspy.LM(f"ollama/{MODEL_NAME}", api_base=OLLAMA_API)
-dspy.configure(lm=lm)
+def run_local_model(prompt: str, model: str = None, temperature: float = 0.7, max_tokens: int = 512) -> str:
+    """ローカルLLM（Ollama）にプロンプトを投げて応答を取得する"""
+    model = model or OLLAMA_MODEL
 
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": temperature,
+            "num_predict": max_tokens
+        }
+    }
 
-def generate_recommendations(cafes, top_n: int = 5):
-    """LLMを用いておすすめカフェコメントを生成"""
-    cafes_text = "\n".join([
-        f"{i+1}. {c['name']}（評価: {c.get('rating', '?')} / {c.get('user_ratings_total', 0)}件） - {c['address']}"
-        for i, c in enumerate(cafes[:top_n])
-    ])
+    try:
+        response = requests.post(
+            OLLAMA_API,
+            json=payload,
+            timeout=60
+        )
+        response.raise_for_status()
+        data = response.json()
 
-    prompt = f"""
-    以下は近くのカフェ情報です。地元の案内人として、雰囲気や立地を踏まえたおすすめコメントを日本語で簡潔に5行以内で作成してください。
-
-    {cafes_text}
-    """
-
-    response = lm(prompt)
-    return response.output_text.strip()
-
-# dspyによる実装ができていないので、修正する。
+        # ✅ Ollamaのレスポンス形式に対応
+        return data.get("response", "").strip()
+    
+    except requests.RequestException as e:
+        print(f"❌ ローカルLLMリクエスト失敗: {e}")
+        return "LLMリクエストに失敗しました。Ollamaが起動しているか確認してください。"
+    except Exception as e:
+        print(f"❌ ローカルLLM応答解析失敗: {e}")
+        return "LLM応答の解析に失敗しました。"
