@@ -12,7 +12,7 @@ def main():
 
     # Find cafes near the specified place
     try:
-        cafe_search_result = cafe_finder.find_cafes(place_name, radius=1000, limit=20)
+        cafe_search_result = cafe_finder.find_cafes(place_name, radius=1000, limit=5)
         print(f"Found {cafe_search_result.total_results} cafes near {place_name}.")
     except Exception as e:
         print(f"Error finding cafes: {e}")

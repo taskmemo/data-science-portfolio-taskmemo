@@ -112,27 +112,3 @@ def search_nearby_cafes(lat: float, lng: float, radius: int = None, limit: int =
         })
 
     return cafes
-
-
-# ======================================
-# 🚀 メイン実行
-# ======================================
-
-if __name__ == "__main__":
-    try:
-        location = geocode_place("自由が丘駅 東京")
-        if not location:
-            print("❌ エラー: 地名から座標を取得できませんでした。")
-            sys.exit(1)
-
-        lat, lng = location
-        print(f"📍 検索座標: {lat:.6f}, {lng:.6f}")
-
-        cafes = search_nearby_cafes(lat, lng, limit=5)
-        print(json.dumps(cafes, indent=2, ensure_ascii=False))
-
-    except KeyboardInterrupt:
-        print("\n🛑 実行を中断しました。")
-    except Exception as e:
-        print(f"予期せぬエラー: {e}")
-        sys.exit(1)
