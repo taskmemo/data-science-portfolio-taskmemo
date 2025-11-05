@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 from typing import Optional, Tuple, List, Dict
 import sys
 from requests.exceptions import RequestException
+import hashlib
+
+from src.utils.cache_manager import CacheManager
 
 
 # ======================================
@@ -37,6 +40,9 @@ if not API_KEY:
     sys.exit(1)
 
 
+cache = CacheManager()
+
+
 # ======================================
 # 🗺️ Geocoding API（地名 → 緯度経度）
 # ======================================
@@ -62,6 +68,41 @@ def geocode_place(place_name: str) -> Optional[Tuple[float, float]]:
     else:
         print(f"⚠️ Geocoding API失敗: status={status}, error={data.get('error_message')}")
         return None
+
+
+def get_place_details(address, ttl_hours=24):
+    """
+    address をキーにキャッシュを確認。あれば返す。
+    なければ Google Geocoding API を呼ぶ（GOOGLE_MAPS_API_KEY が設定されている場合）、
+    設定がなければ簡易シミュレーションを返す。結果は cache に保存される。
+    """
+    cached = cache.get_api_cache(address)
+    if cached:
+        return cached
+
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
+    if api_key:
+        params = {"address": address, "key": api_key}
+        resp = requests.get("https://maps.googleapis.com/maps/api/geocode/json", params=params, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+    else:
+        # no API key: return a deterministic simulated response
+        fake_coords = {
+            "lat": int(hashlib.sha256(address.encode()).hexdigest()[:6], 16) % 90,
+            "lng": int(hashlib.sha256(("lng"+address).encode()).hexdigest()[:6], 16) % 180
+        }
+        data = {
+            "status": "OK",
+            "results": [
+                {
+                    "formatted_address": address,
+                    "geometry": {"location": {"lat": fake_coords["lat"], "lng": fake_coords["lng"]}}
+                }
+            ]
+        }
+    cache.set_api_cache(address, data, ttl_hours=ttl_hours)
+    return data
 
 
 # ======================================

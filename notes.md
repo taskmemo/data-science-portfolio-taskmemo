@@ -11,8 +11,8 @@
 - [☑️] google_maps.pyの実装
 - [☑️] Streamlit.pyによる実装
 PYTHONPATH=. uv run streamlit run src/app/app.py
-- [ ] DSPyの実装
-- [ ] ローカルLLMで自然文章の生成
+- [☑️] DSPyの実装
+- [☑️] ローカルLLMで自然文章の生成
 
 
 ## app.py

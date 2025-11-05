@@ -4,9 +4,12 @@ import streamlit as st
 from src.api.google_maps import search_nearby_cafes, geocode_place
 from src.dspy.sigunatures import CafeInfo
 from src.dspy.modules import CafeFinderModule, CafeRecommendationModule
+from src.utils.cache_manager import CacheManager
 
 load_dotenv()
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
+cache = CacheManager()
 
 # set streamlit config
 st.set_page_config(page_title='☕️ Cafe Finder Bot', layout='centered')
@@ -28,47 +31,62 @@ def main():
     radius = st.slider("検索半径（メートル）", min_value=100, max_value=5000, value=1000, step=100)
     
     if place_name and radius and user_query and st.button("☕️ 近くのカフェを検索"):
-        with st.spinner("位置情報を取得中..."):
-            loc = geocode_place(place_name)
-        if not loc:
-            st.error("❌ 位置情報の取得に失敗しました。地名を確認してください。")
-            st.stop()
+        # ======================================
+        # 🔹　キャッシュキー生成
+        # ======================================
+        cache_key = f"{place_name}_{radius}".lower().strip()
+        cached_data = cache.get_api_cache(cache_key)
+        if cached_data:
+            st.success("💾 キャッシュからデータを取得しました！")
+            cafes = cached_data
         else:
+            # ======================================
+            # Geocode Place
+            # ======================================
+            with st.spinner("位置情報を取得中..."):
+                loc = geocode_place(place_name)
+            if not loc:
+                st.error("❌ 位置情報の取得に失敗しました。地名を確認してください。")
+                st.stop()
             lat, lng = loc
             with st.spinner("カフェ情報の検索中..."):
                 cafes = search_nearby_cafes(lat, lng, radius=radius, limit=5) #上位5件を取得
             if not cafes:
                 st.warning("⚠️ 近くにカフェが見つかりませんでした。")
                 return 
-            st.success(f"✅ {len(cafes)} 件のカフェを発見しました！")
+            
+            # 🔹 キャッシュを保存
+            cache.set_api_cache(cache_key, cafes, ttl_hours=24)
 
-            # ======================================
-            # Cafe Recommendation
-            # ======================================
-            cafe_recommender = CafeRecommendationModule()
-            with st.spinner("カフェの推薦を生成中..."):
-                recommendation_result = cafe_recommender.generate_recommendation(
-                    cafes=[CafeInfo(**cafe) for cafe in cafes],
-                    user_query=user_query
-                )
-            st.success("✅ カフェの推薦が完了しました！")
+        st.success(f"✅ {len(cafes)} 件のカフェを発見しました！")
 
-            # ======================================
-            # Cafe Recommendation Display
-            # ======================================
-            st.write(recommendation_result.recommendation)
-            st.write("### 発見したカフェ一覧")
-            for c in cafes:
-                st.markdown(
-                f"""
-                **☕️ {c['name']}**
-                📍 {c['address']}
-                ⭐️ 評価: {c['rating']} ({c['user_ratings_total']})件のレビュー
-                🔗 [Google Mapsで開く]({c['maps_link']})
-                """,
-                unsafe_allow_html=True
-                )
-            st.divider()
+        # ======================================
+        # Cafe Recommendation
+        # ======================================
+        cafe_recommender = CafeRecommendationModule()
+        with st.spinner("カフェの推薦を生成中..."):
+            recommendation_result = cafe_recommender.generate_recommendation(
+                cafes=[CafeInfo(**cafe) for cafe in cafes],
+                user_query=user_query
+            )
+        st.success("✅ カフェの推薦が完了しました！")
+
+        # ======================================
+        # Cafe Recommendation Display
+        # ======================================
+        st.write(recommendation_result.recommendation)
+        st.write("### 発見したカフェ一覧")
+        for c in cafes:
+            st.markdown(
+            f"""
+            **☕️ {c['name']}**
+            📍 {c['address']}
+            ⭐️ 評価: {c['rating']} ({c['user_ratings_total']})件のレビュー
+            🔗 [Google Mapsで開く]({c['maps_link']})
+            """,
+            unsafe_allow_html=True
+            )
+        st.divider()
                             
         # ======================================
         # Map Display
