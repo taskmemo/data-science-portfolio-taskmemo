@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
 from dspy import Module
-from src.dspy.sigunatures import CafeInfo, CafeSearch, CafeRecommendation
+from src.dspy.signatures import CafeInfo, CafeSearch, CafeRecommendation
 from src.api.google_maps import geocode_place, search_nearby_cafes
 from src.llm.local_llm import run_local_model
 

@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import streamlit as st
 from src.api.google_maps import search_nearby_cafes, geocode_place
-from src.dspy.sigunatures import CafeInfo
+from src.dspy.signatures import CafeInfo
 from src.dspy.modules import CafeFinderModule, CafeRecommendationModule
 from src.utils.cache_manager import CacheManager
 

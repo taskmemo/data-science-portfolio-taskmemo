@@ -6,7 +6,7 @@ OllamaのローカルLLMにリクエストして応答を取得する。
 import requests
 import os
 import hashlib
-from src.dspy.sigunatures import CafeRecommendation
+from src.dspy.signatures import CafeRecommendation
 from src.api.google_maps import load_config
 from src.utils.cache_manager import CacheManager
 
