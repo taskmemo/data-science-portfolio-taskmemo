@@ -49,7 +49,7 @@ class CafeRecommendationModule(Module):
         res = run_local_model(prompt)
 
         return CafeRecommendation(
-            cafes=cafes,
+            cafes=[c.model_dump() for c in cafes],
             user_query=user_query,
             recommendation=res
         )
