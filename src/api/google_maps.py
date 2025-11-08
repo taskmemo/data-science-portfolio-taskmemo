@@ -69,7 +69,9 @@ def geocode_place(place_name: str) -> Optional[Tuple[float, float]]:
         print(f"⚠️ Geocoding API失敗: status={status}, error={data.get('error_message')}")
         return None
 
-
+# ======================================
+# ☕ Geocoding with Cache（キャッシュ付き）
+# ======================================
 def get_geocode_with_cache(address, ttl_hours=24):
     """
     キャッシュがあればそれを返す。なければ geocode_place を呼んで結果をキャッシュして返す。
@@ -78,7 +80,6 @@ def get_geocode_with_cache(address, ttl_hours=24):
     cached = cache.get_api_cache(address)
     if cached:
         return cached
-
     coords = geocode_place(address)
     if coords:
         lat, lng = coords
@@ -145,7 +146,34 @@ def search_nearby_cafes(lat: float, lng: float, user_query: str, radius: int = N
             "lng": place.get("geometry", {}).get("location", {}).get("lng"),
             "rating": place.get("rating"),
             "user_ratings_total": place.get("user_ratings_total"),
+            "place_id": place.get("place_id"), # details取得用
             "maps_link": f"https://www.google.com/maps/place/?q=place_id:{place.get('place_id')}"
         })
 
     return cafes
+
+# ======================================
+# ☕ Place Detail API（カフェの詳細情報取得）
+# ======================================
+
+def get_place_details(place_id: str) -> dict:
+    """ Google Place Details API to get detailed info about a place """
+    detail_url = f"{BASE_URL}/place/details/json"
+    
+    # set up configurations 
+    config = load_config()
+    field_cfg = config["google_maps"].get("fields", [])
+    params = {
+        "place_id": place_id,
+        "fields": ",".join(field_cfg) if field_cfg else "name,rating,website,opening_hours,reviews,user_ratings_total",
+        "language": config["google_maps"].get("language", "ja"),
+        "key": API_KEY
+    }
+
+    res = requests.get(detail_url, params=params, timeout=10)
+    data = res.json()
+    if data.get("status") == "OK":
+        return data["result"]
+    else:
+        print(f"⚠️ Place Details API失敗: status={data.get('status')}, error={data.get('error_message')}")
+        return {}

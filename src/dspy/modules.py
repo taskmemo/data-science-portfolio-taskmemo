@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional, Any
 from dspy import Module
 from src.dspy.signatures import CafeInfo, CafeSearch, CafeRecommendation
-from src.api.google_maps import geocode_place, search_nearby_cafes, get_geocode_with_cache
+from src.api.google_maps import geocode_place, search_nearby_cafes, get_geocode_with_cache, get_place_details
 from src.llm.local_llm import run_local_model
 
 class CafeFinderModule(Module):
@@ -15,7 +15,22 @@ class CafeFinderModule(Module):
             raise ValueError(f"Could not geocode the {place_name}")
         lat, lng = loc["results"][0]["geometry"]["location"]["lat"], loc["results"][0]["geometry"]["location"]["lng"]
         cafes_data = search_nearby_cafes(lat, lng, radius=radius, limit=limit) # get nearby cafes
-        cafes = [CafeInfo(**cafe) for cafe in cafes_data]
+        
+        cafes = []
+        for cafe in cafes_data:
+            details = get_place_details(cafe["place_id"])
+            if details:
+                cafe.update({
+                    "website": details.get("website"),
+                    "opening_hours": details.get("opening_hours"),
+                    "reviews": details.get("reviews"),
+                    "rating": details.get("rating"),
+                    "user_ratings_total": details.get("user_ratings_total"),
+                })
+            else:
+                print(f"⚠️ 詳細情報の取得に失敗しました: {cafe['name']}")
+
+            cafes.append(CafeInfo(**cafe))
 
         return CafeSearch(
             place_name=place_name,
