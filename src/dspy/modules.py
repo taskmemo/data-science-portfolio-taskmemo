@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional, Any
 from dspy import Module
 from src.dspy.signatures import CafeInfo, CafeSearch, CafeRecommendation
-from src.api.google_maps import geocode_place, search_nearby_cafes
+from src.api.google_maps import geocode_place, search_nearby_cafes, get_geocode_with_cache
 from src.llm.local_llm import run_local_model
 
 class CafeFinderModule(Module):
@@ -9,10 +9,11 @@ class CafeFinderModule(Module):
     
     def find_cafes(self, place_name: str, radius: int = 1000, limit: int = 20) -> CafeSearch:
         """ Find nearby cafes given a place name """
-        loc = geocode_place(place_name) # get latitude and longitude from place name
+        # Geocode the place name to get lat/lng
+        loc = get_geocode_with_cache(place_name)
         if not loc:
             raise ValueError(f"Could not geocode the {place_name}")
-        lat, lng = loc
+        lat, lng = loc["results"][0]["geometry"]["location"]["lat"], loc["results"][0]["geometry"]["location"]["lng"]
         cafes_data = search_nearby_cafes(lat, lng, radius=radius, limit=limit) # get nearby cafes
         cafes = [CafeInfo(**cafe) for cafe in cafes_data]
 

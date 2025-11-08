@@ -70,39 +70,32 @@ def geocode_place(place_name: str) -> Optional[Tuple[float, float]]:
         return None
 
 
-def get_place_details(address, ttl_hours=24):
+def get_geocode_with_cache(address, ttl_hours=24):
     """
-    address をキーにキャッシュを確認。あれば返す。
-    なければ Google Geocoding API を呼ぶ（GOOGLE_MAPS_API_KEY が設定されている場合）、
-    設定がなければ簡易シミュレーションを返す。結果は cache に保存される。
+    キャッシュがあればそれを返す。なければ geocode_place を呼んで結果をキャッシュして返す。
+    geocode_place が None を返した場合は None を返す。
     """
     cached = cache.get_api_cache(address)
     if cached:
         return cached
 
-    api_key = os.environ.get("GOOGLE_MAPS_API_KEY")
-    if api_key:
-        params = {"address": address, "key": api_key}
-        resp = requests.get("https://maps.googleapis.com/maps/api/geocode/json", params=params, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-    else:
-        # no API key: return a deterministic simulated response
-        fake_coords = {
-            "lat": int(hashlib.sha256(address.encode()).hexdigest()[:6], 16) % 90,
-            "lng": int(hashlib.sha256(("lng"+address).encode()).hexdigest()[:6], 16) % 180
-        }
+    coords = geocode_place(address)
+    if coords:
+        lat, lng = coords
         data = {
             "status": "OK",
             "results": [
                 {
                     "formatted_address": address,
-                    "geometry": {"location": {"lat": fake_coords["lat"], "lng": fake_coords["lng"]}}
+                    "geometry": {"location": {"lat": lat, "lng": lng}}
                 }
             ]
         }
-    cache.set_api_cache(address, data, ttl_hours=ttl_hours)
-    return data
+        cache.set_api_cache(address, data, ttl_hours=ttl_hours)
+        return data
+
+    print(f"⚠️ Geocoding結果が見つかりません: {address}")
+    return None
 
 
 # ======================================
@@ -113,11 +106,13 @@ def search_nearby_cafes(lat: float, lng: float, user_query: str, radius: int = N
     """Use Google Places API to search for nearby cafes"""
     radius = radius if radius else RADIUS
 
+    profile_cfg = config["google_maps"].get("search_prodfiles", [])
+    
     params = {
         "location": f"{lat},{lng}",
         "radius": radius,
-        "type": config["google_maps"].get("place_type", "cafe"),
-        "keyword": user_query,
+        "type": profile_cfg["place_type"] if profile_cfg else "cafe",
+        "keyword": profile_cfg["keyword"] if profile_cfg else user_query,
         "language": config["google_maps"].get("language", "ja"),
         "key": API_KEY
     }
