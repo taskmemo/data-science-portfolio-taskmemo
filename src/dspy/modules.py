@@ -30,22 +30,39 @@ class CafeRecommendationModule(Module):
 
     def generate_recommendation(self, cafes: List[CafeInfo], user_query: str) -> CafeRecommendation:
         """ Generate top 5 cafe recommendations based on user query """
-        # カフェリストをLLM入力用に整形
-        cafes_text = "\n".join([
-            f"{cafe.name}  (⭐️Rating: {cafe.rating})"
+        # カフェリストをLLM入力用に整形（name, rating に加え主要フィールドを含める）
+        def fmt_field(obj, attr, fallback="N/A"):
+            """ Helper to format field values """
+            val = getattr(obj, attr, None)
+            if val is None:
+                return fallback
+            if isinstance(val, list):
+                return ", ".join(map(str, val)) if val else fallback
+            if isinstance(val, dict):
+                return str(val)
+            return str(val)
+
+        cafes_text = "\n\n".join([
+            (
+                f"Name: {fmt_field(cafe, 'name')}\n"
+                f"Rating: {fmt_field(cafe, 'rating')}\n"
+                f"Reviews: {fmt_field(cafe, 'user_ratings_total')}\n"
+                f"Price level: {fmt_field(cafe, 'price_level')}\n"
+                f"Types: {fmt_field(cafe, 'types')}\n"
+                f"Open now: {fmt_field(getattr(cafe, 'opening_hours', {}), 'get', 'N/A') if False else fmt_field(cafe, 'opening_hours')}\n"
+                f"Address / Vicinity: {fmt_field(cafe, 'vicinity')}\n"
+            )
             for cafe in cafes
         ])
 
-        # プロンプト
         prompt = (
-            f"以下のカフェリストから、ユーザーの希望に最も合う上位5つのカフェを推薦し、"
-            f"各カフェの特徴や評価を考慮して、それぞれの推薦理由を簡潔に説明してください。\n\n"
-            f"# ユーザーの希望: {user_query}\n\n"
-            f"# カフェリスト:\n{cafes_text}\n\n"
-            f"# 推薦結果: "
+            f"以下のカフェ一覧から、ユーザーの希望に最も合う上位5つを選び、"
+            f"各カフェにつき簡潔な推薦理由（該当する特徴と評価を含める）を述べてください。\n\n"
+            f"ユーザーの希望: {user_query}\n\n"
+            f"カフェ一覧:\n{cafes_text}\n\n"
+            f"出力形式: 箇条書きで上位5つ（Name: xxx — 理由）。"
         )
 
-        # ローカルLLMに投げる
         res = run_local_model(prompt)
 
         return CafeRecommendation(

@@ -5,6 +5,53 @@
 PYTHONPATH=. uv run streamlit run src/app/app.py
 - [☑️] DSPyの実装
 - [☑️] ローカルLLMで自然文章の生成
+### 差別化戦略
+- [ ] 会話的インターフェイスの実装（状態を保持して、前回の結果に基づくクエリを生成）
+- [ ] 提示する情報の拡充（レビュー評価、営業時間、写真など）
+- [ ] マルチプロバイダ対応（OpenStreetMap, HERE, Yelp, HotPepperなど）
+- [ ] カフェドメインに特化した属性を追加
+
+```mermaid
+graph TD
+    subgraph Data_Layer
+        A1["Google Maps API"]
+        A2["OpenStreetMap"]
+        A3["Yelp / HotPepper API"]
+        A4["Realtime API (Weather or Event)"]
+    end
+
+    subgraph Processing_Layer
+        B1["Data Fusion & Deduplication"]
+        B2["Cache Manager (SQLite)"]
+        B3["LLM-based Feature Extraction"]
+    end
+
+    subgraph Reasoning_Layer
+        C1["DSPy Recommendation Chain"]
+        C2["User Preference Learning"]
+        C3["Ranking Engine"]
+    end
+
+    subgraph Presentation_Layer
+        D1["Streamlit UI"]
+        D2["Map Embedding + LLM Comments"]
+    end
+
+    A1 & A2 & A3 & A4 --> B1 --> B2 --> B3 --> C1 --> C3 --> D1
+    C2 --> C1
+    C1 --> D2
+```
+
+
+
+
+## google_maps.py
+- [ ] カフェ検索精度の向上
+    - [☑️] keywordパラメータの追加実装（user_queryとして入力に追加する）
+    - [ ] APIレスポンス内容の拡充
+        - [ ] 住所、営業時間、レビュー評価、写真、公式サイトリンク、席数など 
+    - [ ] タグによる検索ができるようにする
+        - Wi-fiあり、電源あり、ペット可、テラス席あり、雰囲気が良いなどのタグを選択できるようにする
 
 ## dspy/
 ### modules.py
@@ -16,7 +63,7 @@ PYTHONPATH=. uv run streamlit run src/app/app.py
 - [☑️] キャッシュ機能の追加
 - [ ] キャッシュがない場合のみLLMを呼び出すように変更する
 - [ ] プロンプト最適化
-- [ ] ローカルLLMのモデル選定
+- [ ] ローカルLLMのモデル選定（Gemma3：12bだと少し時間がかかります。）
 | 優先度                           | モデル名               | 特徴                                    | 理由 |
 | :---------------------------- | :----------------- | :------------------------------------ | :- |
 | 🥇 **`mistral:instruct`（7B）** | 高速・軽量・英日バランス良      | M4のCPU/GPUでも余裕。会話・推薦文生成が自然。DSPyとの相性◎  |    |

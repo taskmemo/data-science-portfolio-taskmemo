@@ -109,7 +109,7 @@ def get_place_details(address, ttl_hours=24):
 # ☕ Places API（近隣カフェ検索）
 # ======================================
 
-def search_nearby_cafes(lat: float, lng: float, radius: int = None, limit: int = 10) -> List[Dict]:
+def search_nearby_cafes(lat: float, lng: float, user_query: str, radius: int = None, limit: int = 10) -> List[Dict]:
     """Use Google Places API to search for nearby cafes"""
     radius = radius if radius else RADIUS
 
@@ -117,6 +117,7 @@ def search_nearby_cafes(lat: float, lng: float, radius: int = None, limit: int =
         "location": f"{lat},{lng}",
         "radius": radius,
         "type": config["google_maps"].get("place_type", "cafe"),
+        "keyword": user_query,
         "language": config["google_maps"].get("language", "ja"),
         "key": API_KEY
     }
