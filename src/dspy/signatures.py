@@ -5,14 +5,17 @@ from src.api.google_maps import load_config
 
 
 class CafeInfo(dspy.Signature):
-    """ cafe information class by search_nearby_cafes from Google_maps.py """
-    name: str = dspy.OutputField(desc = "カフェの名前")
-    address: str = dspy.OutputField(desc = "カフェの住所")
-    lat: Optional[float] = dspy.OutputField(desc = "カフェの緯度")
-    lng: Optional[float] = dspy.OutputField(desc = "カフェの経度")
-    rating: Optional[float] = dspy.OutputField(desc = "カフェの評価（1.0〜5.0）")
-    user_ratings_total: Optional[int] = dspy.OutputField(desc = "カフェの評価数")
-    maps_link: str = dspy.OutputField(desc = "Google Mapsのカフェリンク")
+    name: str = dspy.OutputField(desc="カフェの名前")
+    address: str = dspy.OutputField(desc="カフェの住所")
+    lat: Optional[float] = dspy.OutputField(desc="カフェの緯度", default=None)
+    lng: Optional[float] = dspy.OutputField(desc="カフェの経度", default=None)
+    rating: Optional[float] = dspy.OutputField(desc="カフェの評価（1.0〜5.0）", default=None)
+    user_ratings_total: Optional[int] = dspy.OutputField(desc="カフェの評価数", default=None)
+    maps_link: str = dspy.OutputField(desc="Google Mapsのカフェリンク")
+
+    reviews: Optional[List[Dict]] = dspy.OutputField(desc="カフェの口コミ情報", default=None)
+    has_wifi: Optional[str] = dspy.OutputField(desc="カフェのWi-Fi有無", default=None)
+    review_summary: Optional[str] = dspy.OutputField(desc="カフェの口コミ要約", default=None)
 
 class CafeSearch(dspy.Signature):
     """ cafe search result class """
@@ -37,5 +40,6 @@ class CafeRecommendation(dspy.Signature):
     )
 
     recommendation: str = dspy.OutputField(
-        desc = "与えられたカフェ情報に基づいて、上位5つを推薦し、簡潔に理由を説明した文章"
+        desc = "与えられたカフェ情報に基づいて、上位5つを推薦し、簡潔に理由を説明した文章",
+        default=""
     )

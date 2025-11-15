@@ -95,7 +95,7 @@ def main():
             cafes = cached_data
         else:
             # ======================================
-            # Geocode Place
+            # Geocode Place（位置情報の取得）
             # ======================================
             with st.spinner("位置情報を取得中..."):
                 loc = geocode_place(place_name)
@@ -104,7 +104,7 @@ def main():
                 st.stop()
             lat, lng = loc
             with st.spinner("カフェ情報の検索中..."):
-                cafes = search_nearby_cafes(lat, lng, radius=radius, limit=5) #上位5件を取得
+                cafes = search_nearby_cafes(lat, lng, radius=radius, limit=5, user_query=user_query) #上位5件を取得
             if not cafes:
                 st.warning("⚠️ 近くにカフェが見つかりませんでした。")
                 return 
@@ -113,9 +113,18 @@ def main():
             cache.set_api_cache(cache_key, cafes, ttl_hours=24)
 
         st.success(f"✅ {len(cafes)} 件のカフェを発見しました！")
+        # ======================================
+        # Wi-fi and Review Summary Enrichment（口コミ要約とWi-Fi情報の拡充）
+        # ======================================
+        cafe_finder = CafeFinderModule()
+        enriched_cafes = []
+        with st.spinner("口コミ要約とWi-Fi情報の拡充中..."):
+            for cafe in cafes:
+                enriched_cafe = cafe_finder.enrich_cafe_info(CafeInfo(**cafe))
+                enriched_cafes.append(enriched_cafe.model_dump())
 
         # ======================================
-        # Cafe Recommendation
+        # Cafe Recommendation（カフェ推薦文の生成）
         # ======================================
         cafe_recommender = CafeRecommendationModule()
         with st.spinner("カフェの推薦を生成中..."):
@@ -126,7 +135,7 @@ def main():
         st.success("✅ カフェの推薦が完了しました！")
 
         # ======================================
-        # Cafe Recommendation Display
+        # Cafe Recommendation Display（カフェ推薦文の表示）
         # ======================================
         st.write(recommendation_result.recommendation)
         st.write("### 発見したカフェ一覧")
@@ -137,6 +146,8 @@ def main():
             📍 {c['address']}
             ⭐️ 評価: {c['rating']} ({c['user_ratings_total']})件のレビュー
             🔗 [Google Mapsで開く]({c['maps_link']})
+            📝 口コミ要約: {c.get('review_summary', 'なし')}
+            📶 Wi-Fi: {'あり' if c.get('has_wifi') else 'なし'}
             """,
             unsafe_allow_html=True
             )

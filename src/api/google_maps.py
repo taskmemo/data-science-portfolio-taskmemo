@@ -112,8 +112,8 @@ def search_nearby_cafes(lat: float, lng: float, user_query: str, radius: int = N
     params = {
         "location": f"{lat},{lng}",
         "radius": radius,
-        "type": profile_cfg["place_type"] if profile_cfg else "cafe",
-        "keyword": profile_cfg["keyword"] if profile_cfg else user_query,
+        "type": 'cafe',
+        "keyword": user_query,
         "language": config["google_maps"].get("language", "ja"),
         "key": API_KEY
     }

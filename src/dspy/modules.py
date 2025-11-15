@@ -3,12 +3,13 @@ from dspy import Module
 from src.dspy.signatures import CafeInfo, CafeSearch, CafeRecommendation
 from src.api.google_maps import geocode_place, search_nearby_cafes, get_geocode_with_cache, get_place_details
 from src.llm.local_llm import run_local_model
+import re
 
 class CafeFinderModule(Module):
-    """ Module to find nearby cafes given a place name """
+    """ 地名を入力して近隣のカフェを検索するモジュール """
     
     def find_cafes(self, place_name: str, radius: int = 1000, limit: int = 20) -> CafeSearch:
-        """ Find nearby cafes given a place name """
+        """ 地名を入力して近隣のカフェを検索する """
         # Geocode the place name to get lat/lng
         loc = get_geocode_with_cache(place_name)
         if not loc:
@@ -40,12 +41,52 @@ class CafeFinderModule(Module):
             cafes=cafes,
             total_results=len(cafes)
         )
+    def summarize_reviews(self, reviews: list[str]) -> str:
+        """ 口コミを要約する """
+        if not reviews:
+            return "口コミ情報なし"
+
+        reviews_text = "\n".join([f"- {review}" for review in reviews[:10]])  # Limit to first 10 reviews
+        prompt = (
+            "以下のカフェレビューを要約してください。主なポイントや共通のテーマに焦点を当ててください。\n\n"
+            f"レビュー一覧:\n{reviews_text}\n\n"
+            "要約:"
+        )
+
+        summary = run_local_model(prompt)
+        return summary
+    
+    def detect_wifi_from_reviews(self, reviews: list[str]) -> str:
+        """ 口コミからWi-Fiの有無を検出する """
+        if not reviews:
+            return "口コミ情報なし"
+        
+        # 基本的な正規表現で一次判定
+        if re.search(r'Wi[-\s]?Fi|free internet|free wifi|wifi|ワイファイ', ' '.join(reviews), re.IGNORECASE):
+            return True
+        
+        reviews_text = "\n".join([f"- {review}" for review in reviews[:10]])  # Limit to first 10 reviews
+        prompt = (
+            "以下のカフェレビューからWi-Fiの有無に関する情報を検出してください。\n\n"
+            f"レビュー一覧:\n{reviews_text}\n\n"
+            "Wi-Fiの有無:"
+        )
+
+        wifi_info = run_local_model(prompt)
+        return wifi_info
+    
+    def enrich_cafe_info(self, cafe: CafeInfo) -> CafeInfo:
+        """ カフェ情報を口コミ要約やWi-Fi情報で拡充する """
+        reviews = [review.get("text", "") for review in cafe.reviews] if cafe.reviews else []
+        cafe.review_summary = self.summarize_reviews(reviews)
+        cafe.has_wifi = self.detect_wifi_from_reviews(reviews)
+        return cafe
 
 class CafeRecommendationModule(Module):
-    """ Generate natural-language recommendations from cafe info """
+    """ 自然言語でカフェの推薦を生成するモジュール """
 
     def generate_recommendation(self, cafes: List[CafeInfo], user_query: str) -> CafeRecommendation:
-        """ Generate top 5 cafe recommendations based on user query """
+        """ ユーザーの希望に基づいて上位5つのカフェ推薦を生成する """
         # カフェリストをLLM入力用に整形（name, rating に加え主要フィールドを含める）
         def fmt_field(obj, attr, fallback="N/A"):
             """ Helper to format field values """
