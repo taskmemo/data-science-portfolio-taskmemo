@@ -11,9 +11,8 @@ class CafeInfo(dspy.Signature):
     lng: Optional[float] = dspy.OutputField(desc="カフェの経度", default=None)
     rating: Optional[float] = dspy.OutputField(desc="カフェの評価（1.0〜5.0）", default=None)
     user_ratings_total: Optional[int] = dspy.OutputField(desc="カフェの評価数", default=None)
-    maps_link: str = dspy.OutputField(desc="Google Mapsのカフェリンク")
-
-    reviews: Optional[List[Dict]] = dspy.OutputField(desc="カフェの口コミ情報", default=None)
+    maps_link: str = dspy.OutputField(desc="Google Mapsのカフェリンク", default="")
+    reviews: Optional[List[str]] = dspy.OutputField(desc="カフェの口コミ情報", default=None)
     has_wifi: Optional[str] = dspy.OutputField(desc="カフェのWi-Fi有無", default=None)
     review_summary: Optional[str] = dspy.OutputField(desc="カフェの口コミ要約", default=None)
 

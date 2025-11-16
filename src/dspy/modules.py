@@ -8,14 +8,14 @@ import re
 class CafeFinderModule(Module):
     """ 地名を入力して近隣のカフェを検索するモジュール """
     
-    def find_cafes(self, place_name: str, radius: int = 1000, limit: int = 20) -> CafeSearch:
+    def find_cafes(self, place_name: str, radius: int = 1000, limit: int = 20, user_query: str = "") -> CafeSearch:
         """ 地名を入力して近隣のカフェを検索する """
         # Geocode the place name to get lat/lng
         loc = get_geocode_with_cache(place_name)
         if not loc:
             raise ValueError(f"Could not geocode the {place_name}")
         lat, lng = loc["results"][0]["geometry"]["location"]["lat"], loc["results"][0]["geometry"]["location"]["lng"]
-        cafes_data = search_nearby_cafes(lat, lng, radius=radius, limit=limit) # get nearby cafes
+        cafes_data = search_nearby_cafes(lat, lng, radius=radius, limit=limit, user_query=user_query) # get nearby cafes
         
         cafes = []
         for cafe in cafes_data:
@@ -24,7 +24,8 @@ class CafeFinderModule(Module):
                 cafe.update({
                     "website": details.get("website"),
                     "opening_hours": details.get("opening_hours"),
-                    "reviews": details.get("reviews"),
+                    "reviews_raw": details.get("reviews", []),
+                    "reviews": [r.get("text", "") for r in details.get("reviews", [])],
                     "rating": details.get("rating"),
                     "user_ratings_total": details.get("user_ratings_total"),
                 })
@@ -77,9 +78,12 @@ class CafeFinderModule(Module):
     
     def enrich_cafe_info(self, cafe: CafeInfo) -> CafeInfo:
         """ カフェ情報を口コミ要約やWi-Fi情報で拡充する """
-        reviews = [review.get("text", "") for review in cafe.reviews] if cafe.reviews else []
+        reviews = cafe.reviews
         cafe.review_summary = self.summarize_reviews(reviews)
-        cafe.has_wifi = self.detect_wifi_from_reviews(reviews)
+        
+        wifi = self.detect_wifi_from_reviews(reviews)
+        cafe.has_wifi = "あり" if wifi else "なし"
+        
         return cafe
 
 class CafeRecommendationModule(Module):
