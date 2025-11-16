@@ -6,6 +6,7 @@ import streamlit.components.v1 as components
 from src.dspy.signatures import CafeInfo
 from src.dspy.modules import CafeFinderModule, CafeRecommendationModule
 from src.utils.cache_manager import CacheManager
+import os
 
 # Load environment variables
 load_dotenv()
@@ -13,6 +14,9 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 cache = CacheManager()
 cafe_finder = CafeFinderModule()
 cafe_recommender = CafeRecommendationModule()
+
+output_dir = "./output"
+os.makedirs(output_dir, exist_ok=True)
 
 # ======================================
 # Helper functions 
@@ -140,6 +144,39 @@ def main():
                 user_query=user_query
             )
         st.success("✅ カフェの推薦が完了しました！")
+
+        # ======================================
+        # Save Results to Output Directory（結果をoutputディレクトリに保存）
+        # ======================================
+        json_filename = f"cafe_search_{place_name.replace(' ', '_')}.json"
+        json_path = os.path.join(output_dir, json_filename)
+
+        # ローカル保存
+        with open(json_path, "w", encoding='utf-8') as f:
+            json.dump({
+                "place_name": place_name,
+                "radius": radius,
+                "latitude": lat,
+                "longitude": lng,
+                "cafes": enriched_cafes,
+                "recommendation": recommendation_result.recommendation
+            }, f, ensure_ascii=False, indent=4)
+        st.success(f"✅ 検索結果を {json_path} に保存しました！")
+        
+        # Streamlitからダウンロード
+        st.download_button(
+            label="📥 検索結果をJSONでダウンロード",
+            data=json.dumps({
+                "place_name": place_name,
+                "radius": radius,
+                "latitude": lat,
+                "longitude": lng,
+                "cafes": enriched_cafes,
+                "recommendation": recommendation_result.recommendation
+            }, ensure_ascii=False, indent=4),
+            file_name=json_filename,
+            mime="application/json"
+        )
 
         # ======================================
         # Cafe Recommendation Display（カフェ推薦文の表示）
